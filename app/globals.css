@@ -34,6 +34,23 @@ body {
   position: relative;
 }
 
+.timer-progress-shell {
+  --timer-progress: 0deg;
+  border-radius: 1rem;
+  padding: 2px;
+  background: conic-gradient(
+    #2563eb var(--timer-progress),
+    #d4d4d8 var(--timer-progress)
+  );
+  transition: background 1s linear;
+}
+
+.timer-progress-inner {
+  border-radius: calc(1rem - 2px);
+  background: #ffffff;
+  padding: 0.75rem 1.25rem;
+}
+
 .reward-start {
   animation: rewardGlow 1s ease-out;
 }

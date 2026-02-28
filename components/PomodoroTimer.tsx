@@ -315,6 +315,19 @@ export default function PomodoroTimer() {
     [isRunning, focusLength, breakLength, setDurationForMode],
   );
 
+  const activeDurationSeconds =
+    getDurationByMode(currentMode, focusLength, breakLength) * 60;
+
+  const timerProgress = hasStarted
+    ? Math.min(
+        1,
+        Math.max(
+          0,
+          (activeDurationSeconds - currentTime) / Math.max(1, activeDurationSeconds),
+        ),
+      )
+    : 0;
+
   return (
     <section
       className="mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-6 sm:px-6 sm:py-10"
@@ -403,7 +416,11 @@ export default function PomodoroTimer() {
         </fieldset>
 
         <div className="mt-6">
-          <TimerDisplay time={currentTime} mode={currentMode} />
+          <TimerDisplay
+            time={currentTime}
+            mode={currentMode}
+            progress={timerProgress}
+          />
         </div>
       </div>
 
