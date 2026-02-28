@@ -1,7 +1,8 @@
 import PomodoroTimer from "@/components/PomodoroTimer";
 
 /**
- * Home page for the Pomodoro application.
+ * Home page entry point.
+ * Renders static heading and mounts the timer application shell.
  */
 export default function Home() {
   return (

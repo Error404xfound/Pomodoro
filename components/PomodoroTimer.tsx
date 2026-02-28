@@ -15,6 +15,8 @@ import {
   getModeLabel,
   getSessionProgress,
 } from "./pomodoro/utils";
+import ModeSwitcher from "./pomodoro/ModeSwitcher";
+import SettingsPanel from "./pomodoro/SettingsPanel";
 import TimerDisplay from "./TimerDisplay";
 
 const ALARM_SOURCE = "/AlarmSound.mp3";
@@ -480,65 +482,13 @@ export default function PomodoroTimer() {
           </div>
         ) : null}
 
-        <fieldset
-          className="mx-auto w-full max-w-md"
-          aria-label="Session mode selection"
-        >
-          <legend className="sr-only">Session Mode</legend>
-          <div
-            className="flex rounded-lg border border-zinc-300 bg-white p-1"
-            role="group"
-            aria-label="Mode switcher"
-          >
-            <div
-              className="w-1/2"
-              title={isFocusSwitchDisabled ? MODE_LOCK_MESSAGE : undefined}
-            >
-              <button
-                type="button"
-                onClick={() => handleModeSwitch("focus")}
-                aria-pressed={currentMode === "focus"}
-                aria-disabled={isFocusSwitchDisabled}
-                disabled={isFocusSwitchDisabled}
-                className={[
-                  "w-full rounded-md px-3 py-2 text-sm font-semibold transition",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
-                  isFocusSwitchDisabled
-                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                    : currentMode === "focus"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-zinc-900 hover:bg-zinc-100",
-                ].join(" ")}
-              >
-                Focus
-              </button>
-            </div>
-
-            <div
-              className="w-1/2"
-              title={isBreakSwitchDisabled ? MODE_LOCK_MESSAGE : undefined}
-            >
-              <button
-                type="button"
-                onClick={() => handleModeSwitch("break")}
-                aria-pressed={currentMode === "break"}
-                aria-disabled={isBreakSwitchDisabled}
-                disabled={isBreakSwitchDisabled}
-                className={[
-                  "w-full rounded-md px-3 py-2 text-sm font-semibold transition",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
-                  isBreakSwitchDisabled
-                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
-                    : currentMode === "break"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-zinc-900 hover:bg-zinc-100",
-                ].join(" ")}
-              >
-                Break
-              </button>
-            </div>
-          </div>
-        </fieldset>
+        <ModeSwitcher
+          currentMode={currentMode}
+          isFocusSwitchDisabled={isFocusSwitchDisabled}
+          isBreakSwitchDisabled={isBreakSwitchDisabled}
+          modeLockMessage={MODE_LOCK_MESSAGE}
+          onModeSwitch={handleModeSwitch}
+        />
 
         <div className="mt-6">
           <TimerDisplay
@@ -561,41 +511,13 @@ export default function PomodoroTimer() {
         />
       </div>
 
-      <fieldset
-        className="mt-6 w-full max-w-xl rounded-lg border border-zinc-300 bg-white p-4"
-        aria-label="Reward settings"
-      >
-        <legend className="px-1 text-sm font-semibold text-zinc-800">
-          Control Settings
-        </legend>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex items-center gap-2 text-sm text-zinc-900">
-            <input
-              type="checkbox"
-              checked={soundEnabled}
-              onChange={(event) => setSoundEnabled(event.target.checked)}
-              className="h-4 w-4 rounded border-zinc-400 text-blue-600 focus-visible:ring-blue-600"
-            />
-            Enable sounds
-          </label>
-          <label className="flex items-center gap-2 text-sm text-zinc-900">
-            <input
-              type="checkbox"
-              checked={effectsEnabled}
-              onChange={(event) => setEffectsEnabled(event.target.checked)}
-              disabled={prefersReducedMotion}
-              className="h-4 w-4 rounded border-zinc-400 text-blue-600 focus-visible:ring-blue-600"
-            />
-            Enable animations
-          </label>
-        </div>
-        {prefersReducedMotion ? (
-          <p className="mt-3 text-xs text-zinc-700">
-            Animations are automatically reduced because your system preference
-            requests reduced motion.
-          </p>
-        ) : null}
-      </fieldset>
+      <SettingsPanel
+        soundEnabled={soundEnabled}
+        effectsEnabled={effectsEnabled}
+        prefersReducedMotion={prefersReducedMotion}
+        onSoundEnabledChange={setSoundEnabled}
+        onEffectsEnabledChange={setEffectsEnabled}
+      />
 
       <div className="mt-6 grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
         <LengthSetting

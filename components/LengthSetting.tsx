@@ -24,6 +24,11 @@ type LengthSettingProps = {
 
 /**
  * Duration editor for a single session type.
+ *
+ * Behavior:
+ * - Supports increment/decrement and direct numeric input.
+ * - Input is bounded by configured min/max via parent handlers.
+ * - Can be disabled while timer interactions are locked.
  */
 export default function LengthSetting({
   title,

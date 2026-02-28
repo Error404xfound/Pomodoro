@@ -11,6 +11,10 @@ type AlertProps = {
 
 /**
  * Dismissible alert banner for timer notifications.
+ *
+ * Accessibility:
+ * - Provides explicit close button label.
+ * - Parent controls message content and close callback side effects.
  */
 export default function Alert({ message, onClose }: AlertProps) {
   const [isVisible, setIsVisible] = useState(true);

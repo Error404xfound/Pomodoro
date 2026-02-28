@@ -4,20 +4,17 @@ import { formatSecondsToClock } from "./pomodoro/utils";
 type TimerDisplayProps = {
   /** Remaining time in seconds. */
   time: number;
-  /** Active session mode for the timer display. */
+  /** Current active mode. */
   mode: "focus" | "break";
-  /** Session progress ratio from 0 to 1 for border animation. */
+  /** Progress ratio in [0, 1], mapped to clockwise border fill. */
   progress: number;
 };
 
 /**
- * Visual timer output with accessible mode and time labels.
+ * Presentational timer output for active mode and remaining time.
+ * Uses CSS variable `--timer-progress` to render conic border progression.
  */
-export default function TimerDisplay({
-  time,
-  mode,
-  progress,
-}: TimerDisplayProps) {
+export default function TimerDisplay({ time, mode, progress }: TimerDisplayProps) {
   const clockTime = formatSecondsToClock(time);
   const [minutes, seconds] = clockTime.split(":");
   const modeLabel = mode === "focus" ? "Focus" : "Break";

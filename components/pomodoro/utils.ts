@@ -13,14 +13,15 @@ export function clampLength(value: number): number {
 }
 
 /**
- * Maps a timer mode to a human-friendly label.
+ * Returns a user-facing mode label.
+ * @example getModeLabel("focus") // "Focus"
  */
 export function getModeLabel(mode: TimerMode): string {
   return mode === "focus" ? "Focus" : "Break";
 }
 
 /**
- * Returns the configured duration for the provided mode.
+ * Resolves duration (minutes) for the requested mode.
  */
 export function getDurationByMode(
   mode: TimerMode,
@@ -44,7 +45,7 @@ export function formatSecondsToClock(totalSeconds: number): string {
 }
 
 /**
- * Computes normalized progress for an active timer session.
+ * Computes normalized progress in [0, 1] from current vs total seconds.
  */
 export function getSessionProgress(
   currentTimeSeconds: number,

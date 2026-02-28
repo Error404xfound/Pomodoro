@@ -6,7 +6,7 @@ import "@testing-library/jest-dom";
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
-    matches: query === "(prefers-reduced-motion: reduce)" ? false : false,
+    matches: false,
     media: query,
     onchange: null,
     addEventListener: () => {},
