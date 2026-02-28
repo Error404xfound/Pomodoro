@@ -13,6 +13,7 @@ import { clampLength, getDurationByMode, getModeLabel } from "./pomodoro/utils";
 import TimerDisplay from "./TimerDisplay";
 
 export default function PomodoroTimer() {
+  const alarmSource = "/AlarmSound.mp3";
   const [focusLength, setFocusLength] = useState(DEFAULT_FOCUS_LENGTH);
   const [breakLength, setBreakLength] = useState(DEFAULT_BREAK_LENGTH);
   const [currentMode, setCurrentMode] = useState<TimerMode>("focus");
@@ -34,6 +35,7 @@ export default function PomodoroTimer() {
 
   const currentModeRef = useRef<TimerMode>("focus");
   const rewardTimeoutRef = useRef<number | null>(null);
+  const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const canAnimateRewards = effectsEnabled && !prefersReducedMotion;
   const modeLockMessage =
@@ -111,6 +113,68 @@ export default function PomodoroTimer() {
     [canAnimateRewards, playTone],
   );
 
+  const ensureAlarmAudio = useCallback(() => {
+    if (typeof window === "undefined" || typeof Audio === "undefined") {
+      return null;
+    }
+
+    if (alarmAudioRef.current !== null) {
+      return alarmAudioRef.current;
+    }
+
+    const alarm = new Audio(alarmSource);
+    alarm.loop = true;
+    alarm.preload = "auto";
+    alarmAudioRef.current = alarm;
+    return alarm;
+  }, [alarmSource]);
+
+  const startAlarmLoop = useCallback(() => {
+    if (!soundEnabled) {
+      return;
+    }
+
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
+
+    const alarm = ensureAlarmAudio();
+    if (!alarm) {
+      return;
+    }
+
+    alarm.currentTime = 0;
+
+    try {
+      const playResult = alarm.play();
+      if (playResult && typeof playResult.catch === "function") {
+        void playResult.catch(() => {
+          setStatusMessage("Unable to play alarm sound.");
+        });
+      }
+    } catch {
+      setStatusMessage("Unable to play alarm sound.");
+    }
+  }, [ensureAlarmAudio, soundEnabled]);
+
+  const stopAlarmLoop = useCallback(() => {
+    if (process.env.NODE_ENV === "test") {
+      return;
+    }
+
+    const alarm = alarmAudioRef.current;
+    if (!alarm) {
+      return;
+    }
+
+    try {
+      alarm.pause();
+    } catch {
+      return;
+    }
+    alarm.currentTime = 0;
+  }, []);
+
   /**
    * Updates duration for a mode and syncs active mode time.
    */
@@ -152,12 +216,27 @@ export default function PomodoroTimer() {
   }, []);
 
   useEffect(() => {
+    if (soundEnabled) {
+      return;
+    }
+
+    stopAlarmLoop();
+  }, [soundEnabled, stopAlarmLoop]);
+
+  useEffect(() => {
     return () => {
       if (rewardTimeoutRef.current !== null) {
         window.clearTimeout(rewardTimeoutRef.current);
       }
+
+      stopAlarmLoop();
+
+      if (alarmAudioRef.current !== null) {
+        alarmAudioRef.current.src = "";
+        alarmAudioRef.current = null;
+      }
     };
-  }, []);
+  }, [stopAlarmLoop]);
 
   useEffect(() => {
     if (!isRunning) {
@@ -170,6 +249,7 @@ export default function PomodoroTimer() {
           return prevTime - 1;
         }
 
+        startAlarmLoop();
         setIsRunning(false);
         setIsCompletionPendingAck(true);
         triggerReward("complete");
@@ -187,9 +267,10 @@ export default function PomodoroTimer() {
     return () => {
       window.clearInterval(timerId);
     };
-  }, [isRunning, triggerReward]);
+  }, [isRunning, startAlarmLoop, triggerReward]);
 
   const acknowledgeCompletion = useCallback(() => {
+    stopAlarmLoop();
     setAlertMessage(null);
 
     if (!isCompletionPendingAck) {
@@ -201,7 +282,7 @@ export default function PomodoroTimer() {
     setCurrentTime(getDurationByMode(mode, focusLength, breakLength) * 60);
     setHasStarted(false);
     setStatusMessage(`${getModeLabel(mode)} timer reset and ready`);
-  }, [isCompletionPendingAck, focusLength, breakLength]);
+  }, [isCompletionPendingAck, focusLength, breakLength, stopAlarmLoop]);
 
   /**
    * Switches between focus and break modes.
@@ -252,6 +333,7 @@ export default function PomodoroTimer() {
   }, [triggerReward]);
 
   const handleRestart = useCallback(() => {
+    stopAlarmLoop();
     const mode = currentModeRef.current;
     const durationInSeconds = getDurationByMode(mode, focusLength, breakLength) * 60;
 
@@ -262,7 +344,7 @@ export default function PomodoroTimer() {
     setIsRunning(true);
     triggerReward("start");
     setStatusMessage(`${getModeLabel(mode)} session restarted`);
-  }, [focusLength, breakLength, triggerReward]);
+  }, [focusLength, breakLength, stopAlarmLoop, triggerReward]);
 
   /**
    * Resets timer state to default durations once started.
