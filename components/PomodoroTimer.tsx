@@ -9,11 +9,19 @@ import {
   DEFAULT_FOCUS_LENGTH,
 } from "./pomodoro/constants";
 import type { RewardType, TimerMode } from "./pomodoro/types";
-import { clampLength, getDurationByMode, getModeLabel } from "./pomodoro/utils";
+import {
+  clampLength,
+  getDurationByMode,
+  getModeLabel,
+  getSessionProgress,
+} from "./pomodoro/utils";
 import TimerDisplay from "./TimerDisplay";
 
+const ALARM_SOURCE = "/AlarmSound.mp3";
+const MODE_LOCK_MESSAGE =
+  "Mode cannot be switched until the current timer finishes or is cancelled.";
+
 export default function PomodoroTimer() {
-  const alarmSource = "/AlarmSound.mp3";
   const [focusLength, setFocusLength] = useState(DEFAULT_FOCUS_LENGTH);
   const [breakLength, setBreakLength] = useState(DEFAULT_BREAK_LENGTH);
   const [currentMode, setCurrentMode] = useState<TimerMode>("focus");
@@ -38,8 +46,7 @@ export default function PomodoroTimer() {
   const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const canAnimateRewards = effectsEnabled && !prefersReducedMotion;
-  const modeLockMessage =
-    "Mode cannot be switched until the current timer finishes or is cancelled.";
+  const modeLockMessage = MODE_LOCK_MESSAGE;
   const isModeSwitchLocked = hasStarted && !isCompletionPendingAck;
   const isFocusSwitchDisabled = isModeSwitchLocked && currentMode !== "focus";
   const isBreakSwitchDisabled = isModeSwitchLocked && currentMode !== "break";
@@ -122,12 +129,12 @@ export default function PomodoroTimer() {
       return alarmAudioRef.current;
     }
 
-    const alarm = new Audio(alarmSource);
+    const alarm = new Audio(ALARM_SOURCE);
     alarm.loop = true;
     alarm.preload = "auto";
     alarmAudioRef.current = alarm;
     return alarm;
-  }, [alarmSource]);
+  }, []);
 
   const startAlarmLoop = useCallback(() => {
     if (!soundEnabled) {
@@ -192,6 +199,22 @@ export default function PomodoroTimer() {
     }
 
     setStatusMessage(`${getModeLabel(mode)} duration set to ${next} minutes`);
+  }, []);
+
+  const getCurrentModeDurationSeconds = useCallback(
+    () => getDurationByMode(currentModeRef.current, focusLength, breakLength) * 60,
+    [focusLength, breakLength],
+  );
+
+  const setModeStartedStatus = useCallback((mode: TimerMode) => {
+    if (mode === "focus") {
+      setAlertMessage("Focus session started");
+      setStatusMessage("Focus session started");
+      return;
+    }
+
+    setAlertMessage("Break session started");
+    setStatusMessage("Break session started");
   }, []);
 
   useEffect(() => {
@@ -314,14 +337,7 @@ export default function PomodoroTimer() {
       if (next) {
         setHasStarted(true);
         triggerReward("start");
-
-        if (currentModeRef.current === "focus") {
-          setAlertMessage("Focus session started");
-          setStatusMessage("Focus session started");
-        } else {
-          setAlertMessage("Break session started");
-          setStatusMessage("Break session started");
-        }
+        setModeStartedStatus(currentModeRef.current);
       } else {
         triggerReward("start");
         setAlertMessage("Timer paused");
@@ -330,12 +346,12 @@ export default function PomodoroTimer() {
 
       return next;
     });
-  }, [triggerReward]);
+  }, [setModeStartedStatus, triggerReward]);
 
   const handleRestart = useCallback(() => {
     stopAlarmLoop();
     const mode = currentModeRef.current;
-    const durationInSeconds = getDurationByMode(mode, focusLength, breakLength) * 60;
+    const durationInSeconds = getCurrentModeDurationSeconds();
 
     setAlertMessage(null);
     setIsCompletionPendingAck(false);
@@ -344,7 +360,7 @@ export default function PomodoroTimer() {
     setIsRunning(true);
     triggerReward("start");
     setStatusMessage(`${getModeLabel(mode)} session restarted`);
-  }, [focusLength, breakLength, stopAlarmLoop, triggerReward]);
+  }, [getCurrentModeDurationSeconds, stopAlarmLoop, triggerReward]);
 
   /**
    * Resets timer state to default durations once started.
@@ -400,15 +416,11 @@ export default function PomodoroTimer() {
   const activeDurationSeconds =
     getDurationByMode(currentMode, focusLength, breakLength) * 60;
 
-  const timerProgress = hasStarted
-    ? Math.min(
-        1,
-        Math.max(
-          0,
-          (activeDurationSeconds - currentTime) / Math.max(1, activeDurationSeconds),
-        ),
-      )
-    : 0;
+  const timerProgress = getSessionProgress(
+    currentTime,
+    activeDurationSeconds,
+    hasStarted,
+  );
 
   return (
     <section

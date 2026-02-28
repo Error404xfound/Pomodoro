@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { formatSecondsToClock } from "./pomodoro/utils";
 
 type TimerDisplayProps = {
   /** Remaining time in seconds. */
@@ -17,10 +18,8 @@ export default function TimerDisplay({
   mode,
   progress,
 }: TimerDisplayProps) {
-  const minutes = Math.floor(time / 60)
-    .toString()
-    .padStart(2, "0");
-  const seconds = (time % 60).toString().padStart(2, "0");
+  const clockTime = formatSecondsToClock(time);
+  const [minutes, seconds] = clockTime.split(":");
   const modeLabel = mode === "focus" ? "Focus" : "Break";
   const progressDegrees = `${Math.min(360, Math.max(0, progress * 360))}deg`;
 
@@ -42,7 +41,7 @@ export default function TimerDisplay({
           aria-label={`Time remaining ${minutes} minutes ${seconds} seconds`}
           className="mb-5 text-6xl text-zinc-900"
         >
-          {minutes}:{seconds}
+          {clockTime}
         </p>
       </section>
     </div>

@@ -29,3 +29,33 @@ export function getDurationByMode(
 ): number {
   return mode === "focus" ? focusLength : breakLength;
 }
+
+/**
+ * Formats seconds into mm:ss clock text.
+ */
+export function formatSecondsToClock(totalSeconds: number): string {
+  const safeTotal = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeTotal / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (safeTotal % 60).toString().padStart(2, "0");
+
+  return `${minutes}:${seconds}`;
+}
+
+/**
+ * Computes normalized progress for an active timer session.
+ */
+export function getSessionProgress(
+  currentTimeSeconds: number,
+  totalDurationSeconds: number,
+  hasStarted: boolean,
+): number {
+  if (!hasStarted) {
+    return 0;
+  }
+
+  const safeTotal = Math.max(1, totalDurationSeconds);
+  const elapsed = safeTotal - Math.max(0, currentTimeSeconds);
+  return Math.min(1, Math.max(0, elapsed / safeTotal));
+}
