@@ -2,17 +2,29 @@ import Button from "./Button";
 import { MAX_LENGTH, MIN_LENGTH } from "./pomodoro/constants";
 
 type LengthSettingProps = {
+  /** Section title displayed for this setting. */
   title: string;
+  /** Current duration in minutes. */
   length: number;
+  /** Handler for incrementing duration. */
   onIncrease: () => void;
+  /** Handler for decrementing duration. */
   onDecrease: () => void;
+  /** Handler for manual numeric input updates. */
   onManualChange: (value: number) => void;
+  /** Disables controls while timer is running. */
   isDisabled: boolean;
+  /** Accessible label for the increment button. */
   increaseLabel: string;
+  /** Accessible label for the decrement button. */
   decreaseLabel: string;
+  /** Accessible label for the numeric input. */
   inputLabel: string;
 };
 
+/**
+ * Duration editor for a single session type.
+ */
 export default function LengthSetting({
   title,
   length,
@@ -28,7 +40,10 @@ export default function LengthSetting({
   const rangeId = `${title.toLowerCase().replace(/\s+/g, "-")}-range`;
 
   return (
-    <section className="rounded-lg border border-zinc-300 bg-white p-4" aria-label={title}>
+    <section
+      className="rounded-lg border border-zinc-300 bg-white p-4"
+      aria-label={title}
+    >
       <p className="mb-3 text-lg font-semibold text-zinc-900">{title}</p>
       <div className="flex items-center justify-between gap-3">
         <Button
@@ -67,7 +82,10 @@ export default function LengthSetting({
           <p id={rangeId} className="text-xs text-zinc-700">
             {MIN_LENGTH}–{MAX_LENGTH} minutes
           </p>
-          <output className="font-semibold text-zinc-900" aria-label={`${title} duration`}>
+          <output
+            className="font-semibold text-zinc-900"
+            aria-label={`${title} duration`}
+          >
             {length}
           </output>
         </div>
