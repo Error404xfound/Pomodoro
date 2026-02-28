@@ -10,6 +10,8 @@ const getStartButton = () =>
   screen.getByRole("button", { name: /start timer|start/i });
 const getPauseButton = () =>
   screen.getByRole("button", { name: /pause timer|pause/i });
+const getResumeButton = () =>
+  screen.getByRole("button", { name: /resume timer|resume/i });
 const getDeleteButton = () =>
   screen.getByRole("button", { name: /delete timer|reset timer/i });
 const getDismissButton = () =>
@@ -59,6 +61,22 @@ describe("PomodoroTimer", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("allows mode switching before start", async () => {
+    const user = userEvent.setup();
+    render(<PomodoroTimer />);
+
+    const focusButton = screen.getByRole("button", { name: "Focus" });
+    const breakButton = screen.getByRole("button", { name: "Break" });
+
+    await user.click(breakButton);
+    expect(breakButton).toHaveAttribute("aria-pressed", "true");
+    expect(getTimer()).toHaveTextContent("05:00");
+
+    await user.click(focusButton);
+    expect(focusButton).toHaveAttribute("aria-pressed", "true");
+    expect(getTimer()).toHaveTextContent("25:00");
+  });
+
   it("locks opposite mode after start and unlocks only after delete/reset", async () => {
     const user = userEvent.setup();
     render(<PomodoroTimer />);
@@ -76,6 +94,52 @@ describe("PomodoroTimer", () => {
 
     await user.click(getDeleteButton());
     expect(screen.getByRole("button", { name: "Break" })).toBeEnabled();
+  });
+
+  it("pauses countdown and resumes from remaining time", async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+
+    render(<PomodoroTimer />);
+    await user.click(getStartButton());
+
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(getTimer()).toHaveTextContent("24:58");
+
+    await user.click(getPauseButton());
+    act(() => {
+      jest.advanceTimersByTime(2000);
+    });
+
+    expect(getTimer()).toHaveTextContent("24:58");
+
+    await user.click(getResumeButton());
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(getTimer()).toHaveTextContent("24:57");
+  });
+
+  it("delete restores default focus mode and duration", async () => {
+    const user = userEvent.setup();
+    render(<PomodoroTimer />);
+
+    await user.click(screen.getByRole("button", { name: "Break" }));
+    expect(getTimer()).toHaveTextContent("05:00");
+
+    await user.click(getStartButton());
+    await user.click(getDeleteButton());
+
+    expect(getTimer()).toHaveTextContent("25:00");
+    expect(screen.getByRole("button", { name: "Focus" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(getStartButton()).toBeInTheDocument();
   });
 
   it("stops at 00:00 on completion and shows dismiss/reset controls", async () => {
@@ -109,6 +173,9 @@ describe("PomodoroTimer", () => {
 
     expect(getTimer()).toHaveTextContent("25:00");
     expect(getStartButton()).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Break" }));
+    expect(getTimer()).toHaveTextContent("05:00");
   });
 
   it("completion reset restarts timer immediately", async () => {
