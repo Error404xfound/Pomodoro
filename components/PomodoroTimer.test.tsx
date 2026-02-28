@@ -99,4 +99,26 @@ describe("PomodoroTimer", () => {
 
     expect(screen.getByRole("timer")).toHaveTextContent("05:00");
   });
+
+  it("locks the opposite mode after start and unlocks only after cancel/reset", async () => {
+    const user = userEvent.setup();
+    render(<PomodoroTimer />);
+
+    const breakButton = screen.getByRole("button", { name: "Break" });
+    expect(breakButton).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Start timer" }));
+
+    expect(breakButton).toBeDisabled();
+    expect(breakButton.closest("div")).toHaveAttribute(
+      "title",
+      "Mode cannot be switched until the current timer finishes or is cancelled.",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Pause timer" }));
+    expect(breakButton).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Reset timer" }));
+    expect(screen.getByRole("button", { name: "Break" })).toBeEnabled();
+  });
 });

@@ -39,6 +39,11 @@ export default function PomodoroTimer() {
   const rewardTimeoutRef = useRef<number | null>(null);
 
   const canAnimateRewards = effectsEnabled && !prefersReducedMotion;
+  const modeLockMessage =
+    "Mode cannot be switched until the current timer finishes or is cancelled.";
+  const isModeSwitchLocked = hasStarted;
+  const isFocusSwitchDisabled = isModeSwitchLocked && currentMode !== "focus";
+  const isBreakSwitchDisabled = isModeSwitchLocked && currentMode !== "break";
 
   /**
    * Plays a short oscillator tone for reward feedback.
@@ -208,13 +213,18 @@ export default function PomodoroTimer() {
         return;
       }
 
+      if (isModeSwitchLocked) {
+        setStatusMessage(modeLockMessage);
+        return;
+      }
+
       setIsRunning(false);
       setCurrentMode(mode);
       currentModeRef.current = mode;
       setCurrentTime(getDurationByMode(mode, focusLength, breakLength) * 60);
       setStatusMessage(`${getModeLabel(mode)} mode selected`);
     },
-    [focusLength, breakLength],
+    [focusLength, breakLength, isModeSwitchLocked],
   );
 
   /**
@@ -333,34 +343,53 @@ export default function PomodoroTimer() {
             role="group"
             aria-label="Mode switcher"
           >
-            <button
-              type="button"
-              onClick={() => handleModeSwitch("focus")}
-              aria-pressed={currentMode === "focus"}
-              className={[
-                "w-1/2 rounded-md px-3 py-2 text-sm font-semibold transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
-                currentMode === "focus"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-zinc-900 hover:bg-zinc-100",
-              ].join(" ")}
+            <div
+              className="w-1/2"
+              title={isFocusSwitchDisabled ? modeLockMessage : undefined}
             >
-              Focus
-            </button>
-            <button
-              type="button"
-              onClick={() => handleModeSwitch("break")}
-              aria-pressed={currentMode === "break"}
-              className={[
-                "w-1/2 rounded-md px-3 py-2 text-sm font-semibold transition",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
-                currentMode === "break"
-                  ? "bg-blue-600 text-white"
-                  : "bg-white text-zinc-900 hover:bg-zinc-100",
-              ].join(" ")}
+              <button
+                type="button"
+                onClick={() => handleModeSwitch("focus")}
+                aria-pressed={currentMode === "focus"}
+                aria-disabled={isFocusSwitchDisabled}
+                disabled={isFocusSwitchDisabled}
+                className={[
+                  "w-full rounded-md px-3 py-2 text-sm font-semibold transition",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+                  isFocusSwitchDisabled
+                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                    : currentMode === "focus"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-zinc-900 hover:bg-zinc-100",
+                ].join(" ")}
+              >
+                Focus
+              </button>
+            </div>
+
+            <div
+              className="w-1/2"
+              title={isBreakSwitchDisabled ? modeLockMessage : undefined}
             >
-              Break
-            </button>
+              <button
+                type="button"
+                onClick={() => handleModeSwitch("break")}
+                aria-pressed={currentMode === "break"}
+                aria-disabled={isBreakSwitchDisabled}
+                disabled={isBreakSwitchDisabled}
+                className={[
+                  "w-full rounded-md px-3 py-2 text-sm font-semibold transition",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2",
+                  isBreakSwitchDisabled
+                    ? "cursor-not-allowed bg-zinc-200 text-zinc-500"
+                    : currentMode === "break"
+                      ? "bg-blue-600 text-white"
+                      : "bg-white text-zinc-900 hover:bg-zinc-100",
+                ].join(" ")}
+              >
+                Break
+              </button>
+            </div>
           </div>
         </fieldset>
 
