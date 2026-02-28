@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PomodoroTimer from "./PomodoroTimer";
 
@@ -67,19 +67,22 @@ describe("PomodoroTimer", () => {
     expect(screen.getByRole("timer")).toHaveTextContent("08:00");
   });
 
-  it("disables reset until timer starts", async () => {
+  it("shows delete control only after timer starts", async () => {
     const user = userEvent.setup();
     render(<PomodoroTimer />);
 
-    const resetButton = screen.getByRole("button", { name: "Reset timer" });
-    expect(resetButton).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Delete timer" }),
+    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Start timer" }));
 
     expect(
       screen.getByRole("button", { name: "Pause timer" }),
     ).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Delete timer" }),
+    ).toBeInTheDocument();
   });
 
   it("exposes labeled, keyboard-operable controls", async () => {
@@ -87,11 +90,12 @@ describe("PomodoroTimer", () => {
     render(<PomodoroTimer />);
 
     const startButton = screen.getByRole("button", { name: "Start timer" });
-    const resetButton = screen.getByRole("button", { name: "Reset timer" });
     const breakButton = screen.getByRole("button", { name: "Break" });
 
     expect(startButton).toBeEnabled();
-    expect(resetButton).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Delete timer" }),
+    ).not.toBeInTheDocument();
     expect(breakButton).toBeEnabled();
 
     breakButton.focus();
@@ -118,7 +122,36 @@ describe("PomodoroTimer", () => {
     await user.click(screen.getByRole("button", { name: "Pause timer" }));
     expect(breakButton).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Reset timer" }));
+    await user.click(screen.getByRole("button", { name: "Delete timer" }));
     expect(screen.getByRole("button", { name: "Break" })).toBeEnabled();
+  });
+
+  it("stops at 00:00 on completion and resets only after acknowledgement", async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    render(<PomodoroTimer />);
+
+    await user.click(screen.getByRole("button", { name: "Start timer" }));
+
+    act(() => {
+      jest.advanceTimersByTime(25 * 60 * 1000);
+    });
+
+    expect(screen.getByRole("timer")).toHaveTextContent("00:00");
+    expect(
+      screen.getByRole("button", { name: "Dismiss timer completion" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Restart timer" }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Dismiss timer completion" }),
+    );
+
+    expect(screen.getByRole("timer")).toHaveTextContent("25:00");
+    expect(screen.getByRole("button", { name: "Start timer" })).toBeEnabled();
+
+    jest.useRealTimers();
   });
 });

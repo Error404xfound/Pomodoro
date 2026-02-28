@@ -12,10 +12,6 @@ import type { RewardType, TimerMode } from "./pomodoro/types";
 import { clampLength, getDurationByMode, getModeLabel } from "./pomodoro/utils";
 import TimerDisplay from "./TimerDisplay";
 
-/**
- * Main Pomodoro timer container that coordinates session flow,
- * duration settings, reward effects, and accessibility status updates.
- */
 export default function PomodoroTimer() {
   const [focusLength, setFocusLength] = useState(DEFAULT_FOCUS_LENGTH);
   const [breakLength, setBreakLength] = useState(DEFAULT_BREAK_LENGTH);
@@ -34,6 +30,7 @@ export default function PomodoroTimer() {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
   const [rewardType, setRewardType] = useState<RewardType | null>(null);
+  const [isCompletionPendingAck, setIsCompletionPendingAck] = useState(false);
 
   const currentModeRef = useRef<TimerMode>("focus");
   const rewardTimeoutRef = useRef<number | null>(null);
@@ -41,7 +38,7 @@ export default function PomodoroTimer() {
   const canAnimateRewards = effectsEnabled && !prefersReducedMotion;
   const modeLockMessage =
     "Mode cannot be switched until the current timer finishes or is cancelled.";
-  const isModeSwitchLocked = hasStarted;
+  const isModeSwitchLocked = hasStarted && !isCompletionPendingAck;
   const isFocusSwitchDisabled = isModeSwitchLocked && currentMode !== "focus";
   const isBreakSwitchDisabled = isModeSwitchLocked && currentMode !== "break";
 
@@ -167,42 +164,44 @@ export default function PomodoroTimer() {
       return;
     }
 
-    const timerId = setInterval(() => {
+    const timerId = window.setInterval(() => {
       setCurrentTime((prevTime) => {
         if (prevTime > 1) {
           return prevTime - 1;
         }
 
-        const previousMode = currentModeRef.current;
-        const nextMode: TimerMode =
-          previousMode === "focus" ? "break" : "focus";
-        currentModeRef.current = nextMode;
-        setCurrentMode(nextMode);
+        setIsRunning(false);
+        setIsCompletionPendingAck(true);
+        triggerReward("complete");
 
-        if (previousMode === "focus") {
-          triggerReward("complete");
-          setAlertMessage("Focus session completed. Time for a break.");
-          setStatusMessage("Focus session completed. Break started.");
-        }
+        const completedModeLabel = getModeLabel(currentModeRef.current);
+        setAlertMessage(`${completedModeLabel} session completed.`);
+        setStatusMessage(
+          `${completedModeLabel} session completed. Choose dismiss or reset.`,
+        );
 
-        if (nextMode === "focus") {
-          triggerReward("start");
-          setAlertMessage("Focus session started");
-          setStatusMessage("Focus session started");
-        } else {
-          setStatusMessage("Break session started");
-        }
-
-        const nextTime =
-          getDurationByMode(nextMode, focusLength, breakLength) * 60;
-        return nextTime;
+        return 0;
       });
     }, 1000);
 
     return () => {
-      clearInterval(timerId);
+      window.clearInterval(timerId);
     };
-  }, [isRunning, focusLength, breakLength, triggerReward]);
+  }, [isRunning, triggerReward]);
+
+  const acknowledgeCompletion = useCallback(() => {
+    setAlertMessage(null);
+
+    if (!isCompletionPendingAck) {
+      return;
+    }
+
+    setIsCompletionPendingAck(false);
+    const mode = currentModeRef.current;
+    setCurrentTime(getDurationByMode(mode, focusLength, breakLength) * 60);
+    setHasStarted(false);
+    setStatusMessage(`${getModeLabel(mode)} timer reset and ready`);
+  }, [isCompletionPendingAck, focusLength, breakLength]);
 
   /**
    * Switches between focus and break modes.
@@ -224,12 +223,9 @@ export default function PomodoroTimer() {
       setCurrentTime(getDurationByMode(mode, focusLength, breakLength) * 60);
       setStatusMessage(`${getModeLabel(mode)} mode selected`);
     },
-    [focusLength, breakLength, isModeSwitchLocked],
+    [focusLength, breakLength, isModeSwitchLocked, modeLockMessage],
   );
 
-  /**
-   * Starts or pauses the countdown timer.
-   */
   const handleStartPause = useCallback(() => {
     setIsRunning((prev) => {
       const next = !prev;
@@ -255,6 +251,19 @@ export default function PomodoroTimer() {
     });
   }, [triggerReward]);
 
+  const handleRestart = useCallback(() => {
+    const mode = currentModeRef.current;
+    const durationInSeconds = getDurationByMode(mode, focusLength, breakLength) * 60;
+
+    setAlertMessage(null);
+    setIsCompletionPendingAck(false);
+    setCurrentTime(durationInSeconds);
+    setHasStarted(true);
+    setIsRunning(true);
+    triggerReward("start");
+    setStatusMessage(`${getModeLabel(mode)} session restarted`);
+  }, [focusLength, breakLength, triggerReward]);
+
   /**
    * Resets timer state to default durations once started.
    */
@@ -263,6 +272,7 @@ export default function PomodoroTimer() {
       return;
     }
 
+    setIsCompletionPendingAck(false);
     setIsRunning(false);
     setFocusLength(DEFAULT_FOCUS_LENGTH);
     setBreakLength(DEFAULT_BREAK_LENGTH);
@@ -270,6 +280,7 @@ export default function PomodoroTimer() {
     currentModeRef.current = "focus";
     setCurrentTime(DEFAULT_FOCUS_LENGTH * 60);
     setAlertMessage(null);
+    setStatusMessage("Timer deleted and reset to default durations");
     setRewardType(null);
     setHasStarted(false);
   }, [hasStarted]);
@@ -309,9 +320,7 @@ export default function PomodoroTimer() {
       className="mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-6 sm:px-6 sm:py-10"
       aria-label="Pomodoro timer"
     >
-      {alertMessage ? (
-        <Alert message={alertMessage} onClose={() => setAlertMessage(null)} />
-      ) : null}
+      {alertMessage ? <Alert message={alertMessage} onClose={acknowledgeCompletion} /> : null}
 
       <p className="sr-only" role="status" aria-live="polite">
         {statusMessage}
@@ -401,9 +410,12 @@ export default function PomodoroTimer() {
       <div className="mt-6">
         <Controls
           isRunning={isRunning}
-          canReset={hasStarted}
+          hasStarted={hasStarted}
+          isCompleted={isCompletionPendingAck}
           onStartPause={handleStartPause}
-          onReset={handleReset}
+          onDelete={handleReset}
+          onDismiss={acknowledgeCompletion}
+          onRestart={handleRestart}
         />
       </div>
 

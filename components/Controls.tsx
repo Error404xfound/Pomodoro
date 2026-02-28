@@ -5,12 +5,18 @@ import Button from "./Button";
 type ControlsProps = {
   /** Indicates whether the timer is currently running. */
   isRunning: boolean;
-  /** Enables the reset action after a session has started. */
-  canReset: boolean;
-  /** Toggles between start and pause states. */
+  /** Indicates whether any session has started in this cycle. */
+  hasStarted: boolean;
+  /** Indicates whether a completed session is awaiting user action. */
+  isCompleted: boolean;
+  /** Toggles between start/pause states. */
   onStartPause: () => void;
-  /** Resets timer state back to defaults. */
-  onReset: () => void;
+  /** Deletes/cancels timer state back to defaults. */
+  onDelete: () => void;
+  /** Dismisses completion state without restarting. */
+  onDismiss: () => void;
+  /** Resets and immediately restarts the timer. */
+  onRestart: () => void;
 };
 
 /**
@@ -18,27 +24,66 @@ type ControlsProps = {
  */
 export default function Controls({
   isRunning,
-  canReset,
+  hasStarted,
+  isCompleted,
   onStartPause,
-  onReset,
+  onDelete,
+  onDismiss,
+  onRestart,
 }: ControlsProps) {
+  const startButtonClass = "h-11 w-64";
+  const secondaryButtonClass = "h-11 w-30.5";
+
   return (
-    <div className="flex items-center gap-3">
-      <Button
-        onClick={onStartPause}
-        variant="primary"
-        aria-label={isRunning ? "Pause timer" : "Start timer"}
-      >
-        {isRunning ? "Pause" : "Start"}
-      </Button>
-      <Button
-        onClick={onReset}
-        variant="default"
-        aria-label="Reset timer"
-        disabled={!canReset}
-      >
-        Reset
-      </Button>
+    <div className="flex w-full flex-wrap items-center justify-center gap-3">
+      {!hasStarted ? (
+        <Button
+          onClick={onStartPause}
+          variant="primary"
+          aria-label="Start timer"
+          className={startButtonClass}
+        >
+          Start Timer
+        </Button>
+      ) : isCompleted ? (
+        <>
+          <Button
+            onClick={onDismiss}
+            variant="default"
+            aria-label="Dismiss timer completion"
+            className={secondaryButtonClass}
+          >
+            Dismiss
+          </Button>
+          <Button
+            onClick={onRestart}
+            variant="primary"
+            aria-label="Restart timer"
+            className={secondaryButtonClass}
+          >
+            Reset
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            onClick={onStartPause}
+            variant="primary"
+            aria-label={isRunning ? "Pause timer" : "Resume timer"}
+            className={secondaryButtonClass}
+          >
+            {isRunning ? "Pause" : "Resume"}
+          </Button>
+          <Button
+            onClick={onDelete}
+            variant="danger"
+            aria-label="Delete timer"
+            className={secondaryButtonClass}
+          >
+            Delete
+          </Button>
+        </>
+      )}
     </div>
   );
 }
