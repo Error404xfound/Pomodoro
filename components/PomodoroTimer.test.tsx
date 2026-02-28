@@ -30,9 +30,9 @@ describe("PomodoroTimer", () => {
       screen.getByRole("button", { name: "Increase focus duration" }),
     );
 
-    expect(screen.getByLabelText("Focus Duration duration")).toHaveTextContent(
-      "26",
-    );
+    expect(
+      screen.getByRole("spinbutton", { name: "Focus minutes" }),
+    ).toHaveValue(26);
     expect(screen.getByRole("timer")).toHaveTextContent("26:00");
 
     await user.click(screen.getByRole("button", { name: "Break" }));
@@ -40,9 +40,9 @@ describe("PomodoroTimer", () => {
       screen.getByRole("button", { name: "Increase break duration" }),
     );
 
-    expect(screen.getByLabelText("Break Duration duration")).toHaveTextContent(
-      "6",
-    );
+    expect(
+      screen.getByRole("spinbutton", { name: "Break minutes" }),
+    ).toHaveValue(6);
     expect(screen.getByRole("timer")).toHaveTextContent("06:00");
   });
 

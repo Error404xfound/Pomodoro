@@ -322,9 +322,7 @@ export default function PomodoroTimer() {
           className="mx-auto w-full max-w-md"
           aria-label="Session mode selection"
         >
-          <legend className="mb-2 text-sm font-semibold text-zinc-800">
-            Session Mode
-          </legend>
+          <legend className="sr-only">Session Mode</legend>
           <div
             className="flex rounded-lg border border-zinc-300 bg-white p-1"
             role="group"
@@ -361,7 +359,9 @@ export default function PomodoroTimer() {
           </div>
         </fieldset>
 
-        <TimerDisplay time={currentTime} mode={currentMode} />
+        <div className="mt-6">
+          <TimerDisplay time={currentTime} mode={currentMode} />
+        </div>
       </div>
 
       <div className="mt-6">

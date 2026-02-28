@@ -41,11 +41,11 @@ export default function LengthSetting({
 
   return (
     <section
-      className="rounded-lg border border-zinc-300 bg-white p-4"
+      className="rounded-lg border border-zinc-300 bg-white p-4 text-center"
       aria-label={title}
     >
       <p className="mb-3 text-lg font-semibold text-zinc-900">{title}</p>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-center gap-4">
         <Button
           onClick={onDecrease}
           disabled={isDisabled}
@@ -77,17 +77,11 @@ export default function LengthSetting({
               }
               onManualChange(nextValue);
             }}
-            className="w-24 rounded-md border border-zinc-400 px-2 py-1 text-center text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="mx-auto block w-24 appearance-none rounded-md border border-zinc-400 px-2 py-1 text-center text-zinc-900 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
           />
           <p id={rangeId} className="text-xs text-zinc-700">
             {MIN_LENGTH}–{MAX_LENGTH} minutes
           </p>
-          <output
-            className="font-semibold text-zinc-900"
-            aria-label={`${title} duration`}
-          >
-            {length}
-          </output>
         </div>
 
         <Button
