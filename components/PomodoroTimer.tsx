@@ -223,18 +223,24 @@ export default function PomodoroTimer() {
   const handleStartPause = useCallback(() => {
     setIsRunning((prev) => {
       const next = !prev;
+
       if (next) {
         setHasStarted(true);
+        triggerReward("start");
+
         if (currentModeRef.current === "focus") {
-          triggerReward("start");
           setAlertMessage("Focus session started");
           setStatusMessage("Focus session started");
         } else {
+          setAlertMessage("Break session started");
           setStatusMessage("Break session started");
         }
       } else {
+        triggerReward("start");
+        setAlertMessage("Timer paused");
         setStatusMessage("Timer paused");
       }
+
       return next;
     });
   }, [triggerReward]);
@@ -253,8 +259,7 @@ export default function PomodoroTimer() {
     setCurrentMode("focus");
     currentModeRef.current = "focus";
     setCurrentTime(DEFAULT_FOCUS_LENGTH * 60);
-    setAlertMessage("Timer reset");
-    setStatusMessage("Timer reset to default durations");
+    setAlertMessage(null);
     setRewardType(null);
     setHasStarted(false);
   }, [hasStarted]);
@@ -378,7 +383,7 @@ export default function PomodoroTimer() {
         aria-label="Reward settings"
       >
         <legend className="px-1 text-sm font-semibold text-zinc-800">
-          Reward Effects
+          Control Settings
         </legend>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <label className="flex items-center gap-2 text-sm text-zinc-900">
@@ -388,7 +393,7 @@ export default function PomodoroTimer() {
               onChange={(event) => setSoundEnabled(event.target.checked)}
               className="h-4 w-4 rounded border-zinc-400 text-blue-600 focus-visible:ring-blue-600"
             />
-            Enable reward sounds
+            Enable sounds
           </label>
           <label className="flex items-center gap-2 text-sm text-zinc-900">
             <input
@@ -398,7 +403,7 @@ export default function PomodoroTimer() {
               disabled={prefersReducedMotion}
               className="h-4 w-4 rounded border-zinc-400 text-blue-600 focus-visible:ring-blue-600"
             />
-            Enable reward animations
+            Enable animations
           </label>
         </div>
         {prefersReducedMotion ? (
