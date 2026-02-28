@@ -21,6 +21,18 @@ const ALARM_SOURCE = "/AlarmSound.mp3";
 const MODE_LOCK_MESSAGE =
   "Mode cannot be switched until the current timer finishes or is cancelled.";
 
+type TimerPhase = "idle" | "running" | "paused" | "completed";
+
+/**
+ * Pomodoro timer container component.
+ *
+ * Responsibilities:
+ * - Owns timer state machine (idle, running/paused, completion pending acknowledgement)
+ * - Coordinates mode locking and duration editing rules
+ * - Handles audio/effects toggles and reward signals
+ * - Controls completion alarm loop lifecycle
+ * - Publishes alert and status messages for UX/accessibility
+ */
 export default function PomodoroTimer() {
   const [focusLength, setFocusLength] = useState(DEFAULT_FOCUS_LENGTH);
   const [breakLength, setBreakLength] = useState(DEFAULT_BREAK_LENGTH);
@@ -36,6 +48,7 @@ export default function PomodoroTimer() {
     if (typeof window === "undefined") {
       return false;
     }
+
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
   const [rewardType, setRewardType] = useState<RewardType | null>(null);
@@ -46,8 +59,14 @@ export default function PomodoroTimer() {
   const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const canAnimateRewards = effectsEnabled && !prefersReducedMotion;
-  const modeLockMessage = MODE_LOCK_MESSAGE;
-  const isModeSwitchLocked = hasStarted && !isCompletionPendingAck;
+  const timerPhase: TimerPhase = isCompletionPendingAck
+    ? "completed"
+    : hasStarted
+      ? isRunning
+        ? "running"
+        : "paused"
+      : "idle";
+  const isModeSwitchLocked = timerPhase === "running" || timerPhase === "paused";
   const isFocusSwitchDisabled = isModeSwitchLocked && currentMode !== "focus";
   const isBreakSwitchDisabled = isModeSwitchLocked && currentMode !== "break";
 
@@ -120,6 +139,9 @@ export default function PomodoroTimer() {
     [canAnimateRewards, playTone],
   );
 
+  /**
+   * Ensures a reusable alarm audio instance exists.
+   */
   const ensureAlarmAudio = useCallback(() => {
     if (typeof window === "undefined" || typeof Audio === "undefined") {
       return null;
@@ -136,12 +158,11 @@ export default function PomodoroTimer() {
     return alarm;
   }, []);
 
+  /**
+   * Starts looping completion alarm playback.
+   */
   const startAlarmLoop = useCallback(() => {
-    if (!soundEnabled) {
-      return;
-    }
-
-    if (process.env.NODE_ENV === "test") {
+    if (!soundEnabled || process.env.NODE_ENV === "test") {
       return;
     }
 
@@ -164,6 +185,9 @@ export default function PomodoroTimer() {
     }
   }, [ensureAlarmAudio, soundEnabled]);
 
+  /**
+   * Stops and rewinds completion alarm playback.
+   */
   const stopAlarmLoop = useCallback(() => {
     if (process.env.NODE_ENV === "test") {
       return;
@@ -179,6 +203,7 @@ export default function PomodoroTimer() {
     } catch {
       return;
     }
+
     alarm.currentTime = 0;
   }, []);
 
@@ -292,6 +317,9 @@ export default function PomodoroTimer() {
     };
   }, [isRunning, startAlarmLoop, triggerReward]);
 
+  /**
+   * Dismisses completion state and restores configured duration without auto-start.
+   */
   const acknowledgeCompletion = useCallback(() => {
     stopAlarmLoop();
     setAlertMessage(null);
@@ -317,7 +345,7 @@ export default function PomodoroTimer() {
       }
 
       if (isModeSwitchLocked) {
-        setStatusMessage(modeLockMessage);
+        setStatusMessage(MODE_LOCK_MESSAGE);
         return;
       }
 
@@ -327,7 +355,7 @@ export default function PomodoroTimer() {
       setCurrentTime(getDurationByMode(mode, focusLength, breakLength) * 60);
       setStatusMessage(`${getModeLabel(mode)} mode selected`);
     },
-    [focusLength, breakLength, isModeSwitchLocked, modeLockMessage],
+    [focusLength, breakLength, isModeSwitchLocked],
   );
 
   const handleStartPause = useCallback(() => {
@@ -348,6 +376,9 @@ export default function PomodoroTimer() {
     });
   }, [setModeStartedStatus, triggerReward]);
 
+  /**
+   * Resets and immediately restarts the current mode duration.
+   */
   const handleRestart = useCallback(() => {
     stopAlarmLoop();
     const mode = currentModeRef.current;
@@ -362,14 +393,12 @@ export default function PomodoroTimer() {
     setStatusMessage(`${getModeLabel(mode)} session restarted`);
   }, [getCurrentModeDurationSeconds, stopAlarmLoop, triggerReward]);
 
-  /**
-   * Resets timer state to default durations once started.
-   */
   const handleReset = useCallback(() => {
     if (!hasStarted) {
       return;
     }
 
+    stopAlarmLoop();
     setIsCompletionPendingAck(false);
     setIsRunning(false);
     setFocusLength(DEFAULT_FOCUS_LENGTH);
@@ -381,7 +410,7 @@ export default function PomodoroTimer() {
     setStatusMessage("Timer deleted and reset to default durations");
     setRewardType(null);
     setHasStarted(false);
-  }, [hasStarted]);
+  }, [hasStarted, stopAlarmLoop]);
 
   /**
    * Increases the selected mode duration by one minute.
@@ -413,12 +442,12 @@ export default function PomodoroTimer() {
     [isRunning, focusLength, breakLength, setDurationForMode],
   );
 
-  const activeDurationSeconds =
+  const currentModeDurationSeconds =
     getDurationByMode(currentMode, focusLength, breakLength) * 60;
 
   const timerProgress = getSessionProgress(
     currentTime,
-    activeDurationSeconds,
+    currentModeDurationSeconds,
     hasStarted,
   );
 
@@ -427,7 +456,9 @@ export default function PomodoroTimer() {
       className="mx-auto flex w-full max-w-4xl flex-col items-center px-4 py-6 sm:px-6 sm:py-10"
       aria-label="Pomodoro timer"
     >
-      {alertMessage ? <Alert message={alertMessage} onClose={acknowledgeCompletion} /> : null}
+      {alertMessage ? (
+        <Alert message={alertMessage} onClose={acknowledgeCompletion} />
+      ) : null}
 
       <p className="sr-only" role="status" aria-live="polite">
         {statusMessage}
@@ -461,7 +492,7 @@ export default function PomodoroTimer() {
           >
             <div
               className="w-1/2"
-              title={isFocusSwitchDisabled ? modeLockMessage : undefined}
+              title={isFocusSwitchDisabled ? MODE_LOCK_MESSAGE : undefined}
             >
               <button
                 type="button"
@@ -485,7 +516,7 @@ export default function PomodoroTimer() {
 
             <div
               className="w-1/2"
-              title={isBreakSwitchDisabled ? modeLockMessage : undefined}
+              title={isBreakSwitchDisabled ? MODE_LOCK_MESSAGE : undefined}
             >
               <button
                 type="button"
