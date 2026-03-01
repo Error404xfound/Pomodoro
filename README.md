@@ -1,9 +1,12 @@
 # Pomodoro Timer (Next.js + TypeScript)
 
+Live Demo: https://pomodorotracker-hazel.vercel.app/
+
 Accessible Pomodoro timer with Focus/Break modes, manual duration controls, completion workflow, alerting, and reward feedback.
 
 ## Table of Contents
 
+- [Live Demo](#live-demo)
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [State Lifecycle](#state-lifecycle)
@@ -17,6 +20,10 @@ Accessible Pomodoro timer with Focus/Break modes, manual duration controls, comp
 - [Accessibility](#accessibility)
 - [Local Development](#local-development)
 - [Build and Run](#build-and-run)
+
+## Live Demo
+
+Access the deployed app here: https://pomodorotracker-hazel.vercel.app/
 
 ## Overview
 
@@ -155,6 +162,14 @@ Global styles (`app/globals.css`) include:
 - visible focus rings
 - status messaging for non-visual feedback
 - reduced motion support
+
+## AI Usage Note
+
+This project was mainly a practice exercise in using Generative AI to assist in software development.
+
+AI was used to accelerate boilerplate and implementation, while architecture, validation, accessibility requirements, and final decisions were still human-led.
+
+Future projects will include more traditionally and independently built work to continue strengthening core engineering fundamentals. Do check out more of my future repos!
 
 ## Local Development
 
