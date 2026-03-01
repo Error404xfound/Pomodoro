@@ -511,14 +511,6 @@ export default function PomodoroTimer() {
         />
       </div>
 
-      <SettingsPanel
-        soundEnabled={soundEnabled}
-        effectsEnabled={effectsEnabled}
-        prefersReducedMotion={prefersReducedMotion}
-        onSoundEnabledChange={setSoundEnabled}
-        onEffectsEnabledChange={setEffectsEnabled}
-      />
-
       <div className="mt-6 grid w-full max-w-xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
         <LengthSetting
           title="Focus Duration"
@@ -526,9 +518,7 @@ export default function PomodoroTimer() {
           onIncrease={() => increase("focus")}
           onDecrease={() => decrease("focus")}
           onManualChange={(value) => {
-            if (isRunning) {
-              return;
-            }
+            if (isRunning) return;
             setDurationForMode("focus", value);
           }}
           increaseLabel="Increase focus duration"
@@ -542,9 +532,7 @@ export default function PomodoroTimer() {
           onIncrease={() => increase("break")}
           onDecrease={() => decrease("break")}
           onManualChange={(value) => {
-            if (isRunning) {
-              return;
-            }
+            if (isRunning) return;
             setDurationForMode("break", value);
           }}
           increaseLabel="Increase break duration"
@@ -553,6 +541,16 @@ export default function PomodoroTimer() {
           isDisabled={isRunning}
         />
       </div>
+
+      <SettingsPanel
+        soundEnabled={soundEnabled}
+        effectsEnabled={effectsEnabled}
+        prefersReducedMotion={prefersReducedMotion}
+        onSoundEnabledChange={setSoundEnabled}
+        onEffectsEnabledChange={setEffectsEnabled}
+      />
+
+  
     </section>
   );
 }
